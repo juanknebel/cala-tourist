@@ -1,0 +1,13 @@
+[package]
+name = "fake_data"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-std = { version = "1.12.0", features = ["attributes"] }
+chrono = { version = "0.4.26", features = ["serde"] }
+dotenv = "0.15.0"
+fake = { version = "2.6.1", features = ["always-true-rng", "bigdecimal_rs", "chrono", "dummy", "derive", "time", "uuid", "serde_json", "geo", "geo-types", "http"] }
+rust_decimal = "1.31.0"
+sqlx = { version = "0.7.1", features = ["runtime-async-std-native-tls", "postgres", "chrono", "bigdecimal", "rust_decimal"] }
+
