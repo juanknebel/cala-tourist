@@ -1,18 +1,15 @@
 use bigdecimal;
 use chrono::NaiveDateTime;
-use diesel::prelude::*;
+use sqlx::FromRow;
 
-#[derive(Identifiable, Queryable, Selectable)]
-#[diesel(table_name = crate::schema::attraction)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-//#[diesel(belongs_to(AttractionType))]
+#[derive(FromRow)]
 pub struct Attraction {
   pub id: i32,
-  description: String,
-  city_id: i32,
-  latitude: Option<String>,
-  longitude: Option<String>,
-  attraction_type_id: i32,
+  pub description: String,
+  pub city_id: i32,
+  pub latitude: Option<String>,
+  pub longitude: Option<String>,
+  pub attraction_type_id: i32,
 }
 
 impl Attraction {
@@ -41,13 +38,11 @@ impl Attraction {
   }
 }
 
-#[derive(Identifiable, Queryable, Selectable)]
-#[diesel(table_name = crate::schema::attraction_type)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
+#[derive(FromRow)]
 pub struct AttractionType {
-  id: i32,
-  code: String,
-  description: String,
+  pub id: i32,
+  pub code: String,
+  pub description: String,
 }
 
 impl AttractionType {
@@ -56,13 +51,11 @@ impl AttractionType {
   }
 }
 
-#[derive(Identifiable, Queryable, Selectable)]
-#[diesel(table_name = crate::schema::city)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
+#[derive(FromRow)]
 pub struct City {
-  id: i32,
-  description: String,
-  country_id: i32,
+  pub id: i32,
+  pub description: String,
+  pub country_id: i32,
 }
 
 impl City {
@@ -71,14 +64,12 @@ impl City {
   }
 }
 
-#[derive(Identifiable, Queryable, Selectable)]
-#[diesel(table_name = crate::schema::attraction_rating)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
+#[derive(FromRow)]
 pub struct AttractionRating {
-  id: i32,
-  at: NaiveDateTime,
-  attraction_id: i32,
-  rate: bigdecimal::BigDecimal,
+  pub id: i32,
+  pub at: NaiveDateTime,
+  pub attraction_id: i32,
+  pub rate: bigdecimal::BigDecimal,
 }
 
 impl AttractionRating {
@@ -93,22 +84,50 @@ impl AttractionRating {
   pub fn get_id(&self) -> i32 {
     self.id
   }
+
+  pub fn get_attraction_id(&self) -> i32 {
+    self.attraction_id
+  }
 }
 
-#[derive(Identifiable, Queryable, Selectable)]
-#[diesel(table_name = crate::schema::attraction_rating_aggregate)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
+#[derive(FromRow)]
 pub struct AttractionRatingAggregate {
-  id: i32,
-  attraction_id: i32,
-  at: NaiveDateTime,
-  average: bigdecimal::BigDecimal,
-  ninety_five_percentile: bigdecimal::BigDecimal,
-  ninety_nine_percentile: bigdecimal::BigDecimal,
+  pub id: i32,
+  pub attraction_id: i32,
+  pub at: NaiveDateTime,
+  pub average: bigdecimal::BigDecimal,
+  pub ninety_five_percentile: bigdecimal::BigDecimal,
+  pub ninety_nine_percentile: bigdecimal::BigDecimal,
 }
 
 impl AttractionRatingAggregate {
   pub fn get_attraction_id(&self) -> i32 {
     self.attraction_id
+  }
+}
+
+#[derive(FromRow)]
+pub struct FullAttraction {
+  pub attraction_id: i32,
+  pub description: String,
+  pub city: String,
+  pub attraction_type: String,
+}
+
+impl FullAttraction {
+  pub fn get_attraction_id(&self) -> i32 {
+    self.attraction_id
+  }
+
+  pub fn get_description(&self) -> String {
+    self.description.to_string()
+  }
+
+  pub fn get_city(&self) -> String {
+    self.city.to_string()
+  }
+
+  pub fn get_attraction_type(&self) -> String {
+    self.attraction_type.to_string()
   }
 }

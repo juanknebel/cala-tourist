@@ -1,28 +1,17 @@
-use diesel::{prelude::*, QueryDsl, QueryResult, RunQueryDsl};
-
-use crate::db::database::DbConnection;
-
 use super::attraction::{
-  Attraction, AttractionRating, AttractionRatingAggregate, AttractionType, City,
+  Attraction, AttractionRating, AttractionRatingAggregate,
 };
-use crate::schema::{
-  attraction::dsl::{attraction, *},
-  attraction_rating::dsl::attraction_rating,
-  attraction_rating_aggregate::dsl::attraction_rating_aggregate,
-  attraction_type::dsl::*,
-  city::dsl::*,
-};
+use crate::{db::database::DbConnection, model::attraction::FullAttraction};
+use async_trait::async_trait;
 
+#[async_trait]
 pub trait AttractionRepository {
-  fn list(&self) -> QueryResult<Vec<(Attraction, AttractionType, City)>>;
-  fn get_attraction(
+  async fn list(&self) -> sqlx::Result<Vec<Attraction>>;
+  async fn get_attraction(&self, id: i32) -> sqlx::Result<FullAttraction>;
+  async fn list_ratings(&self) -> sqlx::Result<Vec<AttractionRating>>;
+  async fn list_aggregates(
     &self,
-    id: i32,
-  ) -> QueryResult<(Attraction, AttractionType, City)>;
-  fn list_ratings(&self) -> QueryResult<Vec<(AttractionRating, Attraction)>>;
-  fn list_aggregates(
-    &self,
-  ) -> QueryResult<Vec<(AttractionRatingAggregate, Attraction)>>;
+  ) -> sqlx::Result<Vec<AttractionRatingAggregate>>;
 }
 
 #[derive(Clone)]
@@ -38,40 +27,67 @@ impl PgAttractionRepository {
   }
 }
 
-// TODO: this should be optimized to use some kind of cache and avoid the
-// joins. But for now this is the best solution.
+#[async_trait]
 impl AttractionRepository for PgAttractionRepository {
-  fn list(&self) -> QueryResult<Vec<(Attraction, AttractionType, City)>> {
-    let mut conn = self.connection.get();
-    attraction
-      .inner_join(attraction_type)
-      .inner_join(city)
-      .limit(20)
-      .load::<(Attraction, AttractionType, City)>(&mut conn)
+  async fn list(&self) -> sqlx::Result<Vec<Attraction>> {
+    let conn = self.connection.get();
+    sqlx::query_as!(
+      Attraction,
+      r#"
+      SELECT * FROM attraction
+      LIMIT 20
+      "#
+    )
+    .fetch_all(conn)
+    .await
   }
 
-  fn get_attraction(
+  async fn get_attraction(
     &self,
     the_attraction_id: i32,
-  ) -> QueryResult<(Attraction, AttractionType, City)> {
-    todo!()
+  ) -> sqlx::Result<FullAttraction> {
+    let conn = self.connection.get();
+    sqlx::query_as!(
+      FullAttraction,
+      r#"
+      SELECT a.id as attraction_id, a.description, c.description as city,
+      at.description as attraction_type
+      FROM attraction a
+      INNER JOIN attraction_type at ON a.attraction_type_id = at.id
+      INNER JOIN city c ON a.city_id = c.id
+      WHERE a.id = $1
+      "#,
+      the_attraction_id
+    )
+    .fetch_one(conn)
+    .await
   }
 
-  fn list_ratings(&self) -> QueryResult<Vec<(AttractionRating, Attraction)>> {
-    let mut conn = self.connection.get();
-    attraction_rating
-      .inner_join(attraction)
-      .limit(20)
-      .load::<(AttractionRating, Attraction)>(&mut conn)
+  async fn list_ratings(&self) -> sqlx::Result<Vec<AttractionRating>> {
+    let conn = self.connection.get();
+    sqlx::query_as!(
+      AttractionRating,
+      r#"
+      SELECT * FROM attraction_rating
+      LIMIT 20
+      "#
+    )
+    .fetch_all(conn)
+    .await
   }
 
-  fn list_aggregates(
+  async fn list_aggregates(
     &self,
-  ) -> QueryResult<Vec<(AttractionRatingAggregate, Attraction)>> {
-    let mut conn = self.connection.get();
-    attraction_rating_aggregate
-      .inner_join(attraction)
-      .limit(20)
-      .load::<(AttractionRatingAggregate, Attraction)>(&mut conn)
+  ) -> sqlx::Result<Vec<AttractionRatingAggregate>> {
+    let conn = self.connection.get();
+    sqlx::query_as!(
+      AttractionRatingAggregate,
+      r#"
+      SELECT * FROM attraction_rating_aggregate
+      LIMIT 20
+      "#
+    )
+    .fetch_all(conn)
+    .await
   }
 }

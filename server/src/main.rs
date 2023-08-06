@@ -6,7 +6,6 @@ mod application;
 mod db;
 mod errors;
 mod model;
-mod schema;
 
 use application::{attraction_api, similarity_api};
 use axum::{routing::get, Router};
@@ -22,7 +21,7 @@ async fn main() {
   dotenv().ok();
   // ---- Database initialization ---- //
   let db_uri = std::env::var("DATABASE_URL");
-  let db = db::database::DbConnection::new(db_uri);
+  let db = db::database::DbConnection::new(db_uri).await;
 
   // ---- Repositories initialization ---- //
   let attraction_repo = PgAttractionRepository::new(db.clone());

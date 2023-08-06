@@ -2,13 +2,15 @@ use super::{
   attraction::AttractionRatingAggregate,
   attraction_repository::AttractionRepository,
 };
-use crate::model::attraction::{Attraction, AttractionRating};
+use crate::model::attraction::AttractionRating;
+use async_trait::async_trait;
 
+#[async_trait]
 pub trait SimilarityController: Send + Sync + 'static {
-  fn list_rating_aggregate(
+  async fn list_rating_aggregate(
     &self,
-  ) -> Option<Vec<(AttractionRatingAggregate, Attraction)>>;
-  fn list_ratings(&self) -> Option<Vec<(AttractionRating, Attraction)>>;
+  ) -> Option<Vec<AttractionRatingAggregate>>;
+  async fn list_ratings(&self) -> Option<Vec<AttractionRating>>;
 }
 
 #[derive(Clone)]
@@ -27,22 +29,23 @@ where
   }
 }
 
+#[async_trait]
 impl<AttractionRepo> SimilarityController
   for SimilarityControllerImpl<AttractionRepo>
 where
   AttractionRepo: AttractionRepository + Send + Sync + 'static,
 {
-  fn list_rating_aggregate(
+  async fn list_rating_aggregate(
     &self,
-  ) -> Option<Vec<(AttractionRatingAggregate, Attraction)>> {
-    match self.attraction_repo.list_aggregates() {
+  ) -> Option<Vec<AttractionRatingAggregate>> {
+    match self.attraction_repo.list_aggregates().await {
       Ok(aggregates) => Some(aggregates),
       Err(_) => None,
     }
   }
 
-  fn list_ratings(&self) -> Option<Vec<(AttractionRating, Attraction)>> {
-    match self.attraction_repo.list_ratings() {
+  async fn list_ratings(&self) -> Option<Vec<AttractionRating>> {
+    match self.attraction_repo.list_ratings().await {
       Ok(ratings) => Some(ratings),
       Err(_) => None,
     }

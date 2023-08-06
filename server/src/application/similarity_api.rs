@@ -1,6 +1,6 @@
 use crate::{
   model::{
-    attraction::{Attraction, AttractionRating, AttractionRatingAggregate},
+    attraction::{AttractionRating, AttractionRatingAggregate},
     similarity_controller::SimilarityController,
   },
   Result,
@@ -20,12 +20,7 @@ pub struct RatingAggregateDto {
 }
 
 impl RatingAggregateDto {
-  fn new(
-    (a_rating_aggregate, _an_attraction): &(
-      AttractionRatingAggregate,
-      Attraction,
-    ),
-  ) -> Self {
+  fn new(a_rating_aggregate: &AttractionRatingAggregate) -> Self {
     RatingAggregateDto {
       attraction_id: a_rating_aggregate.get_attraction_id(),
     }
@@ -35,16 +30,16 @@ impl RatingAggregateDto {
 #[derive(Clone, Debug, Serialize, Default)]
 pub struct RatingDto {
   pub id: i32,
-  pub attraction: String,
+  pub attraction_id: i32,
   pub at: NaiveDateTime,
   pub rate: bigdecimal::BigDecimal,
 }
 
 impl RatingDto {
-  fn new((a_rating, an_attraction): &(AttractionRating, Attraction)) -> Self {
+  fn from_entity(a_rating: &AttractionRating) -> Self {
     RatingDto {
       id: a_rating.get_id(),
-      attraction: an_attraction.get_description(),
+      attraction_id: a_rating.get_attraction_id(),
       at: a_rating.get_at(),
       rate: a_rating.get_rate(),
     }
@@ -65,10 +60,13 @@ pub fn routes(similarity_controller: Arc<dyn SimilarityController>) -> Router {
 async fn list_rating(
   State(similarity_controller): State<Arc<dyn SimilarityController>>,
 ) -> Result<Json<Vec<RatingDto>>> {
-  let all_ratings = similarity_controller.list_ratings().unwrap_or_default();
+  let all_ratings = similarity_controller
+    .list_ratings()
+    .await
+    .unwrap_or_default();
   let dtos = all_ratings
     .iter()
-    .map(RatingDto::new)
+    .map(RatingDto::from_entity)
     .collect::<Vec<RatingDto>>();
   Ok(Json(dtos))
 }
@@ -78,6 +76,7 @@ async fn list_ratings_aggregate(
 ) -> Result<Json<Vec<RatingAggregateDto>>> {
   let all_aggregate_ratings = similarity_controller
     .list_rating_aggregate()
+    .await
     .unwrap_or_default();
   let dtos = all_aggregate_ratings
     .iter()
