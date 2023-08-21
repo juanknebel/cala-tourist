@@ -76,7 +76,7 @@ async fn get_db_pool(connection: &str) -> Result<Pool<Postgres>, sqlx::Error> {
 }
 
 async fn generate_attractions(pool: &Pool<Postgres>) {
-  for _n in 1..10000 {
+  for _n in 1..100 {
     let rnd_attraction = random_attraction();
     match sqlx::query_as::<_, Attraction>(
       "INSERT INTO attraction (description, city_id, latitude, longitude, \
@@ -91,13 +91,13 @@ async fn generate_attractions(pool: &Pool<Postgres>) {
     .await
     {
       Ok(inserted_attraction) => {
-        println!(
-          "Inserted attraction with id: {}",
-          inserted_attraction.id
-        );
+        // println!(
+        //  "Inserted attraction with id: {}",
+        //  inserted_attraction.id
+        //);
         generate_rating(&inserted_attraction, &pool).await
       },
-      Err(e) => println!("Error inserint an attraction: {}", e.to_string()),
+      Err(e) => println!("Error inserting an attraction: {}", e.to_string()),
     }
   }
 }
@@ -112,7 +112,7 @@ fn random_ratings(an_attraction: &Attraction) -> AttractionRating {
 }
 
 async fn generate_rating(an_attraction: &Attraction, pool: &Pool<Postgres>) {
-  for _n in 1..1000 {
+  for _n in 1..50 {
     let rnd_rating = random_ratings(&an_attraction);
     match sqlx::query_as::<_, AttractionRating>(
       "INSERT INTO attraction_rating (at, attraction_id, rate) VALUES ($1, \
@@ -125,7 +125,7 @@ async fn generate_rating(an_attraction: &Attraction, pool: &Pool<Postgres>) {
     .await
     {
       Ok(inserted_rating) => {
-        println!("Inserted rating with id: {}", inserted_rating.id)
+        // println!("Inserted rating with id: {}", inserted_rating.id)
       },
       Err(e) => println!("Error inserting a rating: {}", e.to_string()),
     }

@@ -3,7 +3,7 @@ use crate::{
     attraction::{AttractionRating, AttractionRatingAggregate},
     similarity_controller::SimilarityController,
   },
-  Result,
+  Error, Result,
 };
 use axum::{
   extract::State,
@@ -60,6 +60,7 @@ pub fn routes(similarity_controller: Arc<dyn SimilarityController>) -> Router {
 async fn list_rating(
   State(similarity_controller): State<Arc<dyn SimilarityController>>,
 ) -> Result<Json<Vec<RatingDto>>> {
+  println!("->> RATINGS\n");
   let all_ratings = similarity_controller
     .list_ratings()
     .await
@@ -74,6 +75,7 @@ async fn list_rating(
 async fn list_ratings_aggregate(
   State(similarity_controller): State<Arc<dyn SimilarityController>>,
 ) -> Result<Json<Vec<RatingAggregateDto>>> {
+  println!("->> AGGREGATES\n");
   let all_aggregate_ratings = similarity_controller
     .list_rating_aggregate()
     .await
@@ -87,5 +89,13 @@ async fn list_ratings_aggregate(
 
 async fn calculate(
   State(similarity_controller): State<Arc<dyn SimilarityController>>,
-) {
+) -> Result<()> {
+  println!("->> CALCULATE AGGREGATE\n");
+  match similarity_controller
+    .calculate_similarity_between_attractions()
+    .await
+  {
+    Ok(_) => Ok(()),
+    Err(e) => Err(Error::GenerateSimilarityFail),
+  }
 }

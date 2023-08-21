@@ -16,6 +16,8 @@ pub enum Error {
   AuthFailCtxNotInRequestExt,
   // -- Model errors.
   AttractionNotFound { id: i32 },
+  // -- Similarity errors.
+  GenerateSimilarityFail,
 }
 
 impl core::fmt::Display for Error {
@@ -56,6 +58,11 @@ impl Error {
         ..
       } => (StatusCode::NOT_FOUND, ClientError::INVALID_PARAMS),
 
+      // -- Similarity errors.
+      Self::GenerateSimilarityFail => (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        ClientError::SERVICE_ERROR,
+      ),
       // -- Fallback.
       _ => (
         StatusCode::INTERNAL_SERVER_ERROR,

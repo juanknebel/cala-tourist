@@ -1,4 +1,4 @@
-use bigdecimal;
+use bigdecimal::{self, BigDecimal};
 use chrono::NaiveDateTime;
 use sqlx::FromRow;
 
@@ -64,16 +64,16 @@ impl City {
   }
 }
 
-#[derive(FromRow)]
+#[derive(FromRow, Debug, Clone)]
 pub struct AttractionRating {
   pub id: i32,
   pub at: NaiveDateTime,
   pub attraction_id: i32,
-  pub rate: bigdecimal::BigDecimal,
+  pub rate: BigDecimal,
 }
 
 impl AttractionRating {
-  pub fn get_rate(&self) -> bigdecimal::BigDecimal {
+  pub fn get_rate(&self) -> BigDecimal {
     self.rate.clone()
   }
 
@@ -95,14 +95,30 @@ pub struct AttractionRatingAggregate {
   pub id: i32,
   pub attraction_id: i32,
   pub at: NaiveDateTime,
-  pub average: bigdecimal::BigDecimal,
-  pub ninety_five_percentile: bigdecimal::BigDecimal,
-  pub ninety_nine_percentile: bigdecimal::BigDecimal,
+  pub average: BigDecimal,
+  pub ninety_five_percentile: BigDecimal,
+  pub ninety_nine_percentile: BigDecimal,
 }
 
 impl AttractionRatingAggregate {
   pub fn get_attraction_id(&self) -> i32 {
     self.attraction_id
+  }
+
+  pub fn get_at(&self) -> NaiveDateTime {
+    self.at
+  }
+
+  pub fn get_average(&self) -> BigDecimal {
+    self.average.clone()
+  }
+
+  pub fn get_95_percentile(&self) -> BigDecimal {
+    self.ninety_five_percentile.clone()
+  }
+
+  pub fn get_99_percentile(&self) -> BigDecimal {
+    self.ninety_nine_percentile.clone()
   }
 }
 
