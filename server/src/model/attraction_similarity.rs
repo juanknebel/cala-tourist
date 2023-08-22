@@ -1,18 +1,29 @@
 use crate::model::{
   attraction::AttractionRatingAggregate,
-  attraction_repository::AttractionRepository,
+  attraction_repository::{AttractionRepository, EntityId},
+  similarity_generator::Similarity,
 };
-use bigdecimal::{BigDecimal, ToPrimitive, Zero};
+use bigdecimal::{BigDecimal, Zero};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use sqlx::{postgres::PgRow, FromRow, Row};
+use sqlx::FromRow;
 use std::{
   collections::HashSet,
   ops::{AddAssign, Div},
+  sync::Arc,
 };
 
 #[derive(FromRow, Hash, Eq, PartialEq, Clone, Debug)]
 pub struct AttractionByDate {
   pub attraction_id: i32,
+  pub at: NaiveDateTime,
+}
+
+#[derive(FromRow, Debug)]
+pub struct SimilarityBetweenAttraction {
+  pub id: i32,
+  pub attraction_id: i32,
+  pub to_attraction_id: i32,
+  pub similarity: BigDecimal,
   pub at: NaiveDateTime,
 }
 
@@ -113,7 +124,53 @@ where
     Ok(())
   }
 
-  pub async fn generate_similarity(&self) -> Result<(), String> {
+  /// Generate similarity between all the attractions.
+  ///
+  /// In this first approach I decided to iterate over every attraction and
+  /// fetch the information in every loop, justo to keep it simple. But it is
+  /// going to be optimized because it doesn't scale well if the number of
+  /// attractions grows.
+  /// # Return:
+  /// * Nothing if everything is ok.
+  /// * Err a string that represents the error.
+  pub async fn generate_similarity(
+    &self,
+    similarity_calculator: impl Similarity,
+  ) -> Result<(), String> {
+    let attractions: Arc<[EntityId]> = self
+      .attraction_repo
+      .all_attractions_ids()
+      .await
+      .map_err(|e| e.to_string())?
+      .into();
+    for an_attraction in attractions.clone().iter() {
+      let one_attraction_info = self
+        .attraction_repo
+        .get_info(an_attraction.id)
+        .await
+        .map_err(|e| e.to_string())?;
+      for other_attraction in attractions.clone().iter() {
+        let other_attraction_info = self
+          .attraction_repo
+          .get_info(other_attraction.id)
+          .await
+          .map_err(|e| e.to_string())?;
+        let similarity = similarity_calculator
+          .similarity_between(&one_attraction_info, &other_attraction_info);
+        let similarity_between_attraction = SimilarityBetweenAttraction {
+          id: 0,
+          attraction_id: an_attraction.id,
+          to_attraction_id: other_attraction.id,
+          similarity: similarity.clone(),
+          at: Utc::now().naive_utc(),
+        };
+        self
+          .attraction_repo
+          .save_similarity(similarity_between_attraction)
+          .await
+          .map_err(|e| e.to_string())?;
+      }
+    }
     Ok(())
   }
 }

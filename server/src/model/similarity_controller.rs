@@ -4,9 +4,9 @@ use super::{
 };
 use crate::model::{
   attraction::AttractionRating, attraction_similarity::AttractionSimilarity,
+  similarity_generator::SimilarityCalculator,
 };
 use async_trait::async_trait;
-use axum::body::HttpBody;
 
 #[async_trait]
 pub trait SimilarityController: Send + Sync + 'static {
@@ -48,15 +48,11 @@ where
       match self.attraction_similarity.aggregate_for(id.id).await {
         Ok(_) => {},
         Err(e) => {
-          println!("Cannot aggregate for attraction {}", id)
+          println!("Cannot aggregate for attraction {}\n{}", id, e)
         },
       }
     }
     Ok(())
-  }
-
-  async fn similarity(&self) -> Result<(), String> {
-    self.attraction_similarity.generate_similarity().await
   }
 }
 
@@ -86,7 +82,11 @@ where
     &self,
   ) -> Result<(), String> {
     self.aggregate().await?;
-    self.similarity().await?;
+    let similarity_calculator = SimilarityCalculator::default();
+    self
+      .attraction_similarity
+      .generate_similarity(similarity_calculator)
+      .await?;
     Ok(())
   }
 }

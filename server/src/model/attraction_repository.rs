@@ -4,7 +4,9 @@ use super::attraction::{
 use crate::{
   db::database::DbConnection,
   model::{
-    attraction::FullAttraction, attraction_similarity::AttractionByDate,
+    attraction::FullAttraction,
+    attraction_similarity::{AttractionByDate, SimilarityBetweenAttraction},
+    similarity_generator::AttractionInfo,
   },
 };
 use async_trait::async_trait;
@@ -12,7 +14,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use sqlx::{postgres::PgRow, Row};
 use std::{fmt, fmt::Formatter};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct EntityId {
   pub id: i32,
 }
@@ -48,6 +50,11 @@ pub trait AttractionRepository {
   async fn save_attraction_rating_aggregate(
     &self,
     att_rating_aggregate: AttractionRatingAggregate,
+  ) -> sqlx::Result<EntityId>;
+  async fn get_info(&self, attraction_id: i32) -> sqlx::Result<AttractionInfo>;
+  async fn save_similarity(
+    &self,
+    similarity: SimilarityBetweenAttraction,
   ) -> sqlx::Result<EntityId>;
 }
 
@@ -134,6 +141,7 @@ impl AttractionRepository for PgAttractionRepository {
       EntityId,
       r#"
       SELECT id FROM attraction
+      order by id asc
       "#
     )
     .fetch_all(conn)
@@ -220,6 +228,45 @@ impl AttractionRepository for PgAttractionRepository {
       att_rating_aggregate.get_95_percentile(),
       att_rating_aggregate.get_99_percentile(),
     ).fetch_one(conn).await
+  }
+
+  async fn get_info(&self, attraction_id: i32) -> sqlx::Result<AttractionInfo> {
+    let conn = self.connection.get();
+    sqlx::query_as!(
+      AttractionInfo,
+      r#"
+      SELECT a.id as attraction_id, a.attraction_type_id as attraction_type_id,
+      ara.average as avg_rating, a.latitude as latitude, a.longitude as longitude
+      FROM attraction a
+      INNER JOIN attraction_rating_aggregate ara ON a.id = ara.attraction_id
+      WHERE a.id = $1 ORDER BY ara.at DESC
+      LIMIT 1
+      "#,
+      attraction_id
+    )
+    .fetch_one(conn)
+    .await
+  }
+
+  async fn save_similarity(
+    &self,
+    similarity: SimilarityBetweenAttraction,
+  ) -> sqlx::Result<EntityId> {
+    let conn = self.connection.get();
+    sqlx::query_as!(
+      EntityId,
+      r#"
+      INSERT INTO attraction_similarity 
+      (attraction_id, to_attraction_id, similarity, at) VALUES ($1, $2, $3, $4)
+      returning id
+      "#,
+      similarity.attraction_id,
+      similarity.to_attraction_id,
+      similarity.similarity,
+      similarity.at
+    )
+    .fetch_one(conn)
+    .await
   }
 }
 impl AttractionByDate {

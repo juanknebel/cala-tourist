@@ -13,5 +13,5 @@ create table attraction_rating_aggregate
     ninety_nine_percentile decimal not null
 );
 
-alter table attraction
+alter table attraction_rating_aggregate
     owner to postgres;

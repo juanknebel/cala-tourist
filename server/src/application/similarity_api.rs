@@ -96,6 +96,9 @@ async fn calculate(
     .await
   {
     Ok(_) => Ok(()),
-    Err(e) => Err(Error::GenerateSimilarityFail),
+    Err(e) => {
+      println!("xx->> {}", e);
+      Err(Error::GenerateSimilarityFail)
+    },
   }
 }

@@ -49,7 +49,7 @@ impl AttractionDto {
       city_id: Some(an_attraction.get_city_id()),
       attraction_type_id: Some(an_attraction.get_attraction_type_id()),
       latitude: an_attraction.get_latitude(),
-      longitude: an_attraction.get_latitude(),
+      longitude: an_attraction.get_longitude(),
     }
   }
 }

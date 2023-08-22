@@ -45,23 +45,11 @@ pub struct AttractionType {
   pub description: String,
 }
 
-impl AttractionType {
-  pub fn get_description(&self) -> String {
-    self.description.to_string()
-  }
-}
-
 #[derive(FromRow)]
 pub struct City {
   pub id: i32,
   pub description: String,
   pub country_id: i32,
-}
-
-impl City {
-  pub fn get_description(&self) -> String {
-    self.description.to_string()
-  }
 }
 
 #[derive(FromRow, Debug, Clone)]

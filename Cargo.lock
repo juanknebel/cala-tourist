@@ -466,6 +466,7 @@ dependencies = [
  "bigdecimal",
  "chrono",
  "dotenv",
+ "geoutils",
  "httpc-test",
  "serde",
  "serde_json",
@@ -981,6 +982,15 @@ checksum = "9705398c5c7b26132e74513f4ee7c1d7dafd786004991b375c172be2be0eecaa"
 dependencies = [
  "approx",
  "num-traits",
+ "serde",
+]
+
+[[package]]
+name = "geoutils"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36d244a08113319b5ebcabad2b8b7925732d15eec46d7e7ac3c11734f3b7a6ad"
+dependencies = [
  "serde",
 ]
 
