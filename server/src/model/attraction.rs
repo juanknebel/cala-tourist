@@ -135,3 +135,9 @@ impl FullAttraction {
     self.attraction_type.to_string()
   }
 }
+
+#[derive(FromRow, Hash, Eq, PartialEq, Clone, Debug)]
+pub struct AttractionByDate {
+  pub attraction_id: i32,
+  pub at: Option<NaiveDateTime>,
+}

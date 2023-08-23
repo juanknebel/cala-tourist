@@ -1,17 +1,10 @@
-use super::attraction::{
-  Attraction, AttractionRating, AttractionRatingAggregate,
-};
+use super::attraction::{Attraction, AttractionRating};
 use crate::{
   db::database::DbConnection,
-  model::{
-    attraction::FullAttraction,
-    attraction_similarity::{AttractionByDate, SimilarityBetweenAttraction},
-    similarity_generator::AttractionInfo,
-  },
+  model::attraction::{AttractionByDate, FullAttraction},
 };
 use async_trait::async_trait;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use sqlx::{postgres::PgRow, Row};
 use std::{fmt, fmt::Formatter};
 
 #[derive(Debug, Clone, Copy)]
@@ -29,10 +22,10 @@ impl fmt::Display for EntityId {
 pub trait AttractionRepository {
   async fn list(&self) -> sqlx::Result<Vec<Attraction>>;
   async fn get_attraction(&self, id: i32) -> sqlx::Result<FullAttraction>;
-  async fn list_ratings(&self) -> sqlx::Result<Vec<AttractionRating>>;
-  async fn list_aggregates(
+  async fn ratings_for(
     &self,
-  ) -> sqlx::Result<Vec<AttractionRatingAggregate>>;
+    attraction_id: i32,
+  ) -> sqlx::Result<Vec<AttractionRating>>;
   async fn all_attractions_ids(&self) -> sqlx::Result<Vec<EntityId>>;
   async fn sorted_ratings_for(
     &self,
@@ -43,19 +36,6 @@ pub trait AttractionRepository {
     &self,
     attraction_id: i32,
   ) -> sqlx::Result<Vec<AttractionByDate>>;
-  async fn group_aggregate_by_date(
-    &self,
-    attraction_id: i32,
-  ) -> sqlx::Result<Vec<AttractionByDate>>;
-  async fn save_attraction_rating_aggregate(
-    &self,
-    att_rating_aggregate: AttractionRatingAggregate,
-  ) -> sqlx::Result<EntityId>;
-  async fn get_info(&self, attraction_id: i32) -> sqlx::Result<AttractionInfo>;
-  async fn save_similarity(
-    &self,
-    similarity: SimilarityBetweenAttraction,
-  ) -> sqlx::Result<EntityId>;
 }
 
 #[derive(Clone)]
@@ -107,29 +87,19 @@ impl AttractionRepository for PgAttractionRepository {
     .await
   }
 
-  async fn list_ratings(&self) -> sqlx::Result<Vec<AttractionRating>> {
+  async fn ratings_for(
+    &self,
+    attraction_id: i32,
+  ) -> sqlx::Result<Vec<AttractionRating>> {
     let conn = self.connection.get();
     sqlx::query_as!(
       AttractionRating,
       r#"
       SELECT * FROM attraction_rating
-      LIMIT 20
-      "#
-    )
-    .fetch_all(conn)
-    .await
-  }
-
-  async fn list_aggregates(
-    &self,
-  ) -> sqlx::Result<Vec<AttractionRatingAggregate>> {
-    let conn = self.connection.get();
-    sqlx::query_as!(
-      AttractionRatingAggregate,
-      r#"
-      SELECT * FROM attraction_rating_aggregate
-      LIMIT 20
-      "#
+      WHERE attraction_id = $1
+      ORDER BY at desc
+      "#,
+      attraction_id
     )
     .fetch_all(conn)
     .await
@@ -175,109 +145,18 @@ impl AttractionRepository for PgAttractionRepository {
     attraction_id: i32,
   ) -> sqlx::Result<Vec<AttractionByDate>> {
     let conn = self.connection.get();
-    let rows = sqlx::query(
+    let rows = sqlx::query_as!(
+      AttractionByDate,
       r#"
       SELECT attraction_id, DATE_TRUNC('day', at) as at
       FROM attraction_rating
       WHERE attraction_id = $1
       GROUP BY attraction_id, DATE_TRUNC('day', at)
       "#,
-    )
-    .bind(attraction_id)
-    .fetch_all(conn)
-    .await?;
-    let res = AttractionByDate::from_database(rows);
-    Ok(res)
-  }
-
-  async fn group_aggregate_by_date(
-    &self,
-    attraction_id: i32,
-  ) -> sqlx::Result<Vec<AttractionByDate>> {
-    let conn = self.connection.get();
-    let rows = sqlx::query(
-      r#"
-      SELECT attraction_id, DATE_TRUNC('day', at) as at
-      FROM attraction_rating_aggregate 
-      WHERE attraction_id = $1
-      GROUP BY attraction_id, DATE_TRUNC('day', at)
-      "#,
-    )
-    .bind(attraction_id)
-    .fetch_all(conn)
-    .await?;
-    let res = AttractionByDate::from_database(rows);
-    Ok(res)
-  }
-
-  async fn save_attraction_rating_aggregate(
-    &self,
-    att_rating_aggregate: AttractionRatingAggregate,
-  ) -> sqlx::Result<EntityId> {
-    let conn = self.connection.get();
-    sqlx::query_as!(
-      EntityId,
-      r#"
-      INSERT INTO attraction_rating_aggregate
-      (attraction_id, at, average, ninety_five_percentile, ninety_nine_percentile)
-      VALUES ($1, $2, $3, $4, $5) returning id
-      "#,
-      att_rating_aggregate.get_attraction_id(),
-      att_rating_aggregate.get_at(),
-      att_rating_aggregate.get_average(),
-      att_rating_aggregate.get_95_percentile(),
-      att_rating_aggregate.get_99_percentile(),
-    ).fetch_one(conn).await
-  }
-
-  async fn get_info(&self, attraction_id: i32) -> sqlx::Result<AttractionInfo> {
-    let conn = self.connection.get();
-    sqlx::query_as!(
-      AttractionInfo,
-      r#"
-      SELECT a.id as attraction_id, a.attraction_type_id as attraction_type_id,
-      ara.average as avg_rating, a.latitude as latitude, a.longitude as longitude
-      FROM attraction a
-      INNER JOIN attraction_rating_aggregate ara ON a.id = ara.attraction_id
-      WHERE a.id = $1 ORDER BY ara.at DESC
-      LIMIT 1
-      "#,
       attraction_id
     )
-    .fetch_one(conn)
-    .await
-  }
-
-  async fn save_similarity(
-    &self,
-    similarity: SimilarityBetweenAttraction,
-  ) -> sqlx::Result<EntityId> {
-    let conn = self.connection.get();
-    sqlx::query_as!(
-      EntityId,
-      r#"
-      INSERT INTO attraction_similarity 
-      (attraction_id, to_attraction_id, similarity, at) VALUES ($1, $2, $3, $4)
-      returning id
-      "#,
-      similarity.attraction_id,
-      similarity.to_attraction_id,
-      similarity.similarity,
-      similarity.at
-    )
-    .fetch_one(conn)
-    .await
-  }
-}
-impl AttractionByDate {
-  fn from_database(rows: Vec<PgRow>) -> Vec<AttractionByDate> {
-    let res = rows
-      .iter()
-      .map(|row| AttractionByDate {
-        attraction_id: row.get::<i32, _>("attraction_id"),
-        at: row.get::<NaiveDateTime, _>("at"),
-      })
-      .collect::<Vec<AttractionByDate>>();
-    res
+    .fetch_all(conn)
+    .await?;
+    Ok(rows)
   }
 }

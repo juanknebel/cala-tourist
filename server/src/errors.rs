@@ -6,6 +6,9 @@ use serde::Serialize;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
+/// The application errors.
+/// As the application grows this must be split in specific errors per module.
+/// But at the moment, is better to centralize the definition.
 #[derive(Clone, Debug, Serialize, strum_macros::AsRefStr)]
 #[serde(tag = "type", content = "data")]
 pub enum Error {
@@ -33,7 +36,7 @@ impl IntoResponse for Error {
     println!("->> {:<12} - {self:?}", "INTO_RES");
     let mut response = StatusCode::INTERNAL_SERVER_ERROR.into_response();
 
-    // Insert the Error into the reponse.
+    // Insert the Error into the response.
     response.extensions_mut().insert(self);
 
     response

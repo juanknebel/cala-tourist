@@ -1,7 +1,8 @@
 use crate::model::{
-  attraction::AttractionRatingAggregate,
+  attraction::{AttractionByDate, AttractionRatingAggregate},
   attraction_repository::{AttractionRepository, EntityId},
   similarity_generator::Similarity,
+  similarity_repository::SimilarityRepository,
 };
 use bigdecimal::{BigDecimal, Zero};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
@@ -11,12 +12,6 @@ use std::{
   ops::{AddAssign, Div},
   sync::Arc,
 };
-
-#[derive(FromRow, Hash, Eq, PartialEq, Clone, Debug)]
-pub struct AttractionByDate {
-  pub attraction_id: i32,
-  pub at: NaiveDateTime,
-}
 
 #[derive(FromRow, Debug)]
 pub struct SimilarityBetweenAttraction {
@@ -28,17 +23,24 @@ pub struct SimilarityBetweenAttraction {
 }
 
 #[derive(Clone)]
-pub struct AttractionSimilarity<AttractionRepo> {
+pub struct AttractionSimilarity<AttractionRepo, SimilarityRepo> {
   attraction_repo: AttractionRepo,
+  similarity_repo: SimilarityRepo,
 }
 
-impl<AttractionRepo> AttractionSimilarity<AttractionRepo>
+impl<AttractionRepo, SimilarityRepo>
+  AttractionSimilarity<AttractionRepo, SimilarityRepo>
 where
   AttractionRepo: AttractionRepository,
+  SimilarityRepo: SimilarityRepository,
 {
-  pub fn new(attraction_repo: AttractionRepo) -> Self {
+  pub fn new(
+    attraction_repo: AttractionRepo,
+    similarity_repo: SimilarityRepo,
+  ) -> Self {
     AttractionSimilarity {
       attraction_repo,
+      similarity_repo,
     }
   }
 
@@ -49,7 +51,7 @@ where
       .await
       .map_err(|e| e.to_string())?;
     let aggregate_by_date = self
-      .attraction_repo
+      .similarity_repo
       .group_aggregate_by_date(attraction_id)
       .await
       .map_err(|e| e.to_string())?;
@@ -65,7 +67,7 @@ where
       match self
         .aggregate_for_at(
           an_attraction_date.attraction_id,
-          an_attraction_date.at.date(),
+          an_attraction_date.at.unwrap().date(),
         )
         .await
       {
@@ -117,7 +119,7 @@ where
     };
 
     self
-      .attraction_repo
+      .similarity_repo
       .save_attraction_rating_aggregate(attraction_aggregate)
       .await
       .map_err(|e| e.to_string())?;
@@ -143,15 +145,20 @@ where
       .await
       .map_err(|e| e.to_string())?
       .into();
+    let mut seen_attraction: HashSet<i32> = HashSet::new();
     for an_attraction in attractions.clone().iter() {
+      seen_attraction.insert(an_attraction.id);
       let one_attraction_info = self
-        .attraction_repo
+        .similarity_repo
         .get_info(an_attraction.id)
         .await
         .map_err(|e| e.to_string())?;
       for other_attraction in attractions.clone().iter() {
+        if seen_attraction.get(&other_attraction.id).is_some() {
+          continue;
+        }
         let other_attraction_info = self
-          .attraction_repo
+          .similarity_repo
           .get_info(other_attraction.id)
           .await
           .map_err(|e| e.to_string())?;
@@ -165,7 +172,7 @@ where
           at: Utc::now().naive_utc(),
         };
         self
-          .attraction_repo
+          .similarity_repo
           .save_similarity(similarity_between_attraction)
           .await
           .map_err(|e| e.to_string())?;

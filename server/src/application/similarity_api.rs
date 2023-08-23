@@ -1,6 +1,6 @@
 use crate::{
   model::{
-    attraction::{AttractionRating, AttractionRatingAggregate},
+    attraction::AttractionRatingAggregate,
     similarity_controller::SimilarityController,
   },
   Error, Result,
@@ -10,7 +10,6 @@ use axum::{
   routing::{get, post},
   Json, Router,
 };
-use chrono::NaiveDateTime;
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -27,51 +26,26 @@ impl RatingAggregateDto {
   }
 }
 
-#[derive(Clone, Debug, Serialize, Default)]
-pub struct RatingDto {
-  pub id: i32,
-  pub attraction_id: i32,
-  pub at: NaiveDateTime,
-  pub rate: bigdecimal::BigDecimal,
-}
-
-impl RatingDto {
-  fn from_entity(a_rating: &AttractionRating) -> Self {
-    RatingDto {
-      id: a_rating.get_id(),
-      attraction_id: a_rating.get_attraction_id(),
-      at: a_rating.get_at(),
-      rate: a_rating.get_rate(),
-    }
-  }
-}
-
+/// Defines the endpoints that handles the interaction with the similarity and
+/// the attractions.
 pub fn routes(similarity_controller: Arc<dyn SimilarityController>) -> Router {
   Router::new()
     .route(
       "/similarity/aggregate",
       get(list_ratings_aggregate),
     )
-    .route("/similarity/rating", get(list_rating))
     .route("/similarity/calculate", post(calculate))
     .with_state(similarity_controller)
 }
 
-async fn list_rating(
-  State(similarity_controller): State<Arc<dyn SimilarityController>>,
-) -> Result<Json<Vec<RatingDto>>> {
-  println!("->> RATINGS\n");
-  let all_ratings = similarity_controller
-    .list_ratings()
-    .await
-    .unwrap_or_default();
-  let dtos = all_ratings
-    .iter()
-    .map(RatingDto::from_entity)
-    .collect::<Vec<RatingDto>>();
-  Ok(Json(dtos))
-}
-
+/// List all the aggregates ratings from all the attractions.
+///
+/// # Arguments:
+/// * similarity_controller: the controller responsible of the actions.
+///
+/// # Return:
+/// * Ok with a vector of rating aggregates.
+/// * Err with the error.
 async fn list_ratings_aggregate(
   State(similarity_controller): State<Arc<dyn SimilarityController>>,
 ) -> Result<Json<Vec<RatingAggregateDto>>> {
@@ -87,6 +61,13 @@ async fn list_ratings_aggregate(
   Ok(Json(dtos))
 }
 
+/// Calculate the similarity between all the attractions.
+///
+/// # Arguments:
+/// * similarity_controller: the controller responsible of the actions.
+///
+/// # Return:
+/// * Err with 500 status code.
 async fn calculate(
   State(similarity_controller): State<Arc<dyn SimilarityController>>,
 ) -> Result<()> {

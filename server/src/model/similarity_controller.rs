@@ -3,8 +3,9 @@ use super::{
   attraction_repository::AttractionRepository,
 };
 use crate::model::{
-  attraction::AttractionRating, attraction_similarity::AttractionSimilarity,
+  attraction_similarity::AttractionSimilarity,
   similarity_generator::SimilarityCalculator,
+  similarity_repository::SimilarityRepository,
 };
 use async_trait::async_trait;
 
@@ -13,27 +14,37 @@ pub trait SimilarityController: Send + Sync + 'static {
   async fn list_rating_aggregate(
     &self,
   ) -> Option<Vec<AttractionRatingAggregate>>;
-  async fn list_ratings(&self) -> Option<Vec<AttractionRating>>;
   async fn calculate_similarity_between_attractions(
     &self,
   ) -> Result<(), String>;
 }
 
 #[derive(Clone)]
-pub struct SimilarityControllerImpl<AttractionRepo> {
+pub struct SimilarityControllerImpl<AttractionRepo, SimilarityRepo> {
   attraction_repo: AttractionRepo,
-  attraction_similarity: AttractionSimilarity<AttractionRepo>,
+  similarity_repo: SimilarityRepo,
+  attraction_similarity: AttractionSimilarity<AttractionRepo, SimilarityRepo>,
 }
 
-impl<AttractionRepo> SimilarityControllerImpl<AttractionRepo>
+impl<AttractionRepo, SimilarityRepo>
+  SimilarityControllerImpl<AttractionRepo, SimilarityRepo>
 where
   AttractionRepo: AttractionRepository + Clone,
+  SimilarityRepo: SimilarityRepository + Clone,
 {
-  pub fn new(attraction_repo: AttractionRepo) -> Self {
-    let repo_clone = attraction_repo.clone();
+  pub fn new(
+    attraction_repo: AttractionRepo,
+    similarity_repo: SimilarityRepo,
+  ) -> Self {
+    let att_repo_clone = attraction_repo.clone();
+    let sim_repo_clone = similarity_repo.clone();
     SimilarityControllerImpl {
-      attraction_repo: repo_clone,
-      attraction_similarity: AttractionSimilarity::new(attraction_repo),
+      attraction_repo: att_repo_clone,
+      similarity_repo: sim_repo_clone,
+      attraction_similarity: AttractionSimilarity::new(
+        attraction_repo,
+        similarity_repo,
+      ),
     }
   }
 
@@ -57,23 +68,17 @@ where
 }
 
 #[async_trait]
-impl<AttractionRepo> SimilarityController
-  for SimilarityControllerImpl<AttractionRepo>
+impl<AttractionRepo, SimilarityRepo> SimilarityController
+  for SimilarityControllerImpl<AttractionRepo, SimilarityRepo>
 where
   AttractionRepo: AttractionRepository + Send + Sync + 'static + Clone,
+  SimilarityRepo: SimilarityRepository + Send + Sync + 'static + Clone,
 {
   async fn list_rating_aggregate(
     &self,
   ) -> Option<Vec<AttractionRatingAggregate>> {
-    match self.attraction_repo.list_aggregates().await {
+    match self.similarity_repo.list_aggregates().await {
       Ok(aggregates) => Some(aggregates),
-      Err(_) => None,
-    }
-  }
-
-  async fn list_ratings(&self) -> Option<Vec<AttractionRating>> {
-    match self.attraction_repo.list_ratings().await {
-      Ok(ratings) => Some(ratings),
       Err(_) => None,
     }
   }

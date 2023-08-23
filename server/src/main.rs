@@ -9,6 +9,7 @@ mod db;
 mod errors;
 mod model;
 
+use crate::model::similarity_repository::PgSimilarityRepository;
 use application::{attraction_api, similarity_api};
 use axum::{routing::get, Router};
 use dotenv::dotenv;
@@ -27,13 +28,16 @@ async fn main() {
 
   // ---- Repositories initialization ---- //
   let attraction_repo = PgAttractionRepository::new(db.clone());
+  let similarity_repo = PgSimilarityRepository::new(db.clone());
 
   // ---- Controllers initialization ---- //
   let attraction_controller =
     AttractionControllerImpl::new(attraction_repo.clone());
 
-  let similarity_controller =
-    SimilarityControllerImpl::new(attraction_repo.clone());
+  let similarity_controller = SimilarityControllerImpl::new(
+    attraction_repo.clone(),
+    similarity_repo.clone(),
+  );
 
   // ---- Routes initialization ---- //
   let attractions_api =
