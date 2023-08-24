@@ -13,12 +13,8 @@ pub struct AttractionInfo {
 }
 
 impl AttractionInfo {
-  fn has_unknown_location(&self) -> bool {
-    self.longitude.is_none() || self.longitude.is_none()
-  }
-
   fn location(&self) -> Option<Location> {
-    if self.has_unknown_location() {
+    if self.longitude.is_none() || self.longitude.is_none() {
       return None;
     }
 

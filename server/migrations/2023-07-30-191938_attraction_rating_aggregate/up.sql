@@ -1,4 +1,3 @@
--- Your SQL goes here
 create table attraction_rating_aggregate
 (
     id                 serial

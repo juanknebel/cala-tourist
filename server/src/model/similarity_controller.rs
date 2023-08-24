@@ -13,6 +13,7 @@ use async_trait::async_trait;
 pub trait SimilarityController: Send + Sync + 'static {
   async fn list_rating_aggregate(
     &self,
+    attraction_id: i32,
   ) -> Option<Vec<AttractionRatingAggregate>>;
   async fn calculate_similarity_between_attractions(
     &self,
@@ -76,8 +77,9 @@ where
 {
   async fn list_rating_aggregate(
     &self,
+    attraction_id: i32,
   ) -> Option<Vec<AttractionRatingAggregate>> {
-    match self.similarity_repo.list_aggregates().await {
+    match self.similarity_repo.list_aggregates(attraction_id).await {
       Ok(aggregates) => Some(aggregates),
       Err(_) => None,
     }

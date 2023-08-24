@@ -6,24 +6,39 @@ use crate::{
   Error, Result,
 };
 use axum::{
-  extract::State,
+  extract::{Query, State},
   routing::{get, post},
   Json, Router,
 };
-use serde::Serialize;
+use bigdecimal::BigDecimal;
+use chrono::NaiveDateTime;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Serialize, Default)]
 pub struct RatingAggregateDto {
   pub attraction_id: i32,
+  pub at: NaiveDateTime,
+  pub average: BigDecimal,
+  pub percentile_95: BigDecimal,
+  pub percentile_99: BigDecimal,
 }
 
 impl RatingAggregateDto {
   fn new(a_rating_aggregate: &AttractionRatingAggregate) -> Self {
     RatingAggregateDto {
       attraction_id: a_rating_aggregate.get_attraction_id(),
+      at: a_rating_aggregate.get_at(),
+      average: a_rating_aggregate.get_average(),
+      percentile_95: a_rating_aggregate.get_95_percentile(),
+      percentile_99: a_rating_aggregate.get_99_percentile(),
     }
   }
+}
+
+#[derive(Deserialize)]
+struct AttractionParam {
+  attraction_id: i32,
 }
 
 /// Defines the endpoints that handles the interaction with the similarity and
@@ -41,17 +56,23 @@ pub fn routes(similarity_controller: Arc<dyn SimilarityController>) -> Router {
 /// List all the aggregates ratings from all the attractions.
 ///
 /// # Arguments:
+/// * attraction_param: the attraction query param necessary to retrieve the
+/// aggregates.
 /// * similarity_controller: the controller responsible of the actions.
 ///
 /// # Return:
 /// * Ok with a vector of rating aggregates.
 /// * Err with the error.
 async fn list_ratings_aggregate(
+  Query(attraction_param): Query<AttractionParam>,
   State(similarity_controller): State<Arc<dyn SimilarityController>>,
 ) -> Result<Json<Vec<RatingAggregateDto>>> {
-  println!("->> AGGREGATES\n");
+  println!(
+    "->> AGGREGATES for attraction: {}\n",
+    attraction_param.attraction_id
+  );
   let all_aggregate_ratings = similarity_controller
-    .list_rating_aggregate()
+    .list_rating_aggregate(attraction_param.attraction_id)
     .await
     .unwrap_or_default();
   let dtos = all_aggregate_ratings

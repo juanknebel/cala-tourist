@@ -13,6 +13,7 @@ use async_trait::async_trait;
 pub trait SimilarityRepository {
   async fn list_aggregates(
     &self,
+    attraction_id: i32,
   ) -> sqlx::Result<Vec<AttractionRatingAggregate>>;
   async fn group_aggregate_by_date(
     &self,
@@ -46,14 +47,16 @@ impl PgSimilarityRepository {
 impl SimilarityRepository for PgSimilarityRepository {
   async fn list_aggregates(
     &self,
+    attraction_id: i32,
   ) -> sqlx::Result<Vec<AttractionRatingAggregate>> {
     let conn = self.connection.get();
     sqlx::query_as!(
       AttractionRatingAggregate,
       r#"
       SELECT * FROM attraction_rating_aggregate
-      LIMIT 20
-      "#
+      WHERE attraction_id = $1
+      "#,
+      attraction_id
     )
     .fetch_all(conn)
     .await
