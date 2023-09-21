@@ -30,6 +30,44 @@ pub trait SimilarityRepository {
   ) -> sqlx::Result<EntityId>;
 }
 
+#[derive(Clone, Default)]
+pub struct DummySimilarityRepo;
+
+#[async_trait]
+impl SimilarityRepository for DummySimilarityRepo {
+  async fn list_aggregates(
+    &self,
+    _: i32,
+  ) -> sqlx::Result<Vec<AttractionRatingAggregate>> {
+    todo!()
+  }
+
+  async fn group_aggregate_by_date(
+    &self,
+    _: i32,
+  ) -> sqlx::Result<Vec<AttractionByDate>> {
+    todo!()
+  }
+
+  async fn save_attraction_rating_aggregate(
+    &self,
+    _: AttractionRatingAggregate,
+  ) -> sqlx::Result<EntityId> {
+    todo!()
+  }
+
+  async fn get_info(&self, _: i32) -> sqlx::Result<AttractionInfo> {
+    todo!()
+  }
+
+  async fn save_similarity(
+    &self,
+    _: SimilarityBetweenAttraction,
+  ) -> sqlx::Result<EntityId> {
+    todo!()
+  }
+}
+
 #[derive(Clone)]
 pub struct PgSimilarityRepository {
   connection: DbConnection,

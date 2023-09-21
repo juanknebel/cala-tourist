@@ -38,6 +38,43 @@ pub trait AttractionRepository {
   ) -> sqlx::Result<Vec<AttractionByDate>>;
 }
 
+#[derive(Clone, Default)]
+pub struct DummyAttractionRepo;
+
+#[async_trait]
+impl AttractionRepository for DummyAttractionRepo {
+  async fn list(&self) -> sqlx::Result<Vec<Attraction>> {
+    todo!()
+  }
+
+  async fn get_attraction(&self, _: i32) -> sqlx::Result<FullAttraction> {
+    todo!()
+  }
+
+  async fn ratings_for(&self, _: i32) -> sqlx::Result<Vec<AttractionRating>> {
+    todo!()
+  }
+
+  async fn all_attractions_ids(&self) -> sqlx::Result<Vec<EntityId>> {
+    todo!()
+  }
+
+  async fn sorted_ratings_for(
+    &self,
+    _: i32,
+    _: NaiveDate,
+  ) -> sqlx::Result<Vec<AttractionRating>> {
+    todo!()
+  }
+
+  async fn group_ratings_by_date(
+    &self,
+    _: i32,
+  ) -> sqlx::Result<Vec<AttractionByDate>> {
+    todo!()
+  }
+}
+
 #[derive(Clone)]
 pub struct PgAttractionRepository {
   connection: DbConnection,

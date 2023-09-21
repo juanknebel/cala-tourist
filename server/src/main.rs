@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
 
 pub use self::errors::{Error, Result};
 
@@ -7,43 +7,20 @@ mod db;
 mod errors;
 mod model;
 
-use crate::model::similarity_repository::PgSimilarityRepository;
+use crate::application::app::start_application;
 use application::{attraction_api, similarity_api};
 use axum::{routing::get, Router};
-use dotenv::dotenv;
-use model::{
-  attraction_controller::AttractionControllerImpl,
-  attraction_repository::PgAttractionRepository,
-  similarity_controller::SimilarityControllerImpl,
-};
 
 #[tokio::main]
 async fn main() {
-  dotenv().ok();
-  // ---- Database initialization ---- //
-  let db_uri = std::env::var("DATABASE_URL");
-  let db = db::database::DbConnection::new(db_uri).await;
-
-  // ---- Repositories initialization ---- //
-  let attraction_repo = PgAttractionRepository::new(db.clone());
-  let similarity_repo = PgSimilarityRepository::new(db.clone());
-
-  // ---- Controllers initialization ---- //
-  let attraction_controller =
-    AttractionControllerImpl::new(attraction_repo.clone());
-
-  let similarity_controller = SimilarityControllerImpl::new(
-    attraction_repo.clone(),
-    similarity_repo.clone(),
-  );
+  let application = start_application().await;
 
   // ---- Routes initialization ---- //
-  let attractions_api =
-    attraction_api::routes(Arc::new(attraction_controller.clone()));
+  let attractions_api = attraction_api::routes(application.attraction.clone());
 
-  let similarity_api = similarity_api::routes(Arc::new(similarity_controller));
+  let similarity_api = similarity_api::routes(application.similarity.clone());
 
-  let app = Router::new()
+  let router = Router::new()
     .route("/hello", get(hello))
     .merge(attractions_api)
     .merge(similarity_api);
@@ -52,7 +29,7 @@ async fn main() {
   let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
   println!("->> LISTENING on {addr}\n");
   axum::Server::bind(&addr)
-    .serve(app.into_make_service())
+    .serve(router.into_make_service())
     .await
     .unwrap();
 }
