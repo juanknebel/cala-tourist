@@ -139,10 +139,10 @@ async fn rating(
   State(attraction_controller): State<Arc<dyn AttractionController>>,
 ) -> Result<Json<Vec<RatingDto>>> {
   println!("->> RATINGS\n");
-  let Some(ratings_for) = attraction_controller
-    .ratings_for(id)
-    .await else {
-    return Err(Error::AttractionNotFound {id});
+  let Some(ratings_for) = attraction_controller.ratings_for(id).await else {
+    return Err(Error::AttractionNotFound {
+      id,
+    });
   };
   let dtos = ratings_for
     .iter()

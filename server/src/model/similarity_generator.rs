@@ -84,9 +84,9 @@ impl Similarity for SimilarityCalculator {
     match distance_result {
       None => {},
       Some(distance) => match distance.meters().to_i128().unwrap() * 1000 {
-        0..5 => similarity += 10.0,
-        5..10 => similarity += 5.0,
-        10..20 => similarity += 2.0,
+        0..=5 => similarity += 10.0,
+        5..=10 => similarity += 5.0,
+        10..=20 => similarity += 2.0,
         _ => {},
       },
     }
