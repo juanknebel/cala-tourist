@@ -2,28 +2,29 @@
 name = "cala-tourist"
 version = "0.1.0"
 edition = "2021"
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = "0.1.72"
-axum = "0.6.18"
-bigdecimal = { version = "0.3.1", features = ["serde"] }
-chrono = { version = "0.4.26", features = ["serde"] }
+async-trait = "0.1.74"
+axum = "0.6.20"
+bigdecimal = { version = "0.3.0", features = ["serde"] }
+chrono = { version = "0.4.31", features = ["serde"] }
 dotenv = "0.15.0"
 geoutils = { version = "0.5.1", features = ["serde"] }
 # features = "0.10.0"
 # fs = "0.0.5"
-serde = { version = "1.0.167", features = ["derive"] }
-serde_json = "1.0.100"
-sqlx = { version = "0.7.1", features = ["runtime-async-std-native-tls", "postgres", "chrono", "bigdecimal", "rust_decimal", "runtime-tokio-native-tls"] }
+serde = { version = "1.0.192", features = ["derive"] }
+serde_json = "1.0.108"
+sqlx = { version = "0.7.2", features = ["runtime-async-std-native-tls", "postgres", "chrono", "bigdecimal", "rust_decimal", "runtime-tokio-native-tls", "sqlite", "macros"] }
 # serde_with = "3.0.0"
-strum_macros = "0.25.1"
-tokio = { version = "1.28.2", features = ["full"] }
+strum_macros = "0.25.3"
+tokio = { version = "1.34.0", features = ["full"] }
 # tower-cookies = "0.9.0"
 # tower-http = { version = "0.4.1", features = ["fs"] }
 # uuid = { version = "1.4.0", features = ["v4", "fast-rng"] }
 
 [dev-dependencies]
-anyhow = "1.0.71"
-httpc-test = "0.1.4"
+anyhow = "1.0.75"
+httpc-test = "0.1.7"
